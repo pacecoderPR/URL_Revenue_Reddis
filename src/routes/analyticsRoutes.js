@@ -8,7 +8,7 @@ const {
 
 // Routes
 router.get('/overall', getOverallAnalytics); // Specific route for overall analytics
-router.get('/:alias', getUrlAnalytics); // Alias analytics (renamed to avoid conflicts)
-router.get('/topic/:topic', getTopicAnalytics); // Topic analytics (renamed to avoid conflicts)
+router.get('/:alias', getUrlAnalytics); 
+router.get('/topic/:topic', getTopicAnalytics); 
 
 module.exports = router;

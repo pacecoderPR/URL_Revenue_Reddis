@@ -4,9 +4,7 @@ let nanoid;
   const { nanoid: generatedNanoid } = await import('nanoid');
   nanoid = generatedNanoid;
 
-  // You can now use nanoid here
   const shortUrl = nanoid();
-  console.log(shortUrl);
 })();
 const redisClient = require('../utils/redisClient');
 const URL = require('../models/urlModel');
@@ -29,7 +27,7 @@ exports.createShortUrl = async (req, res) => {
       topic,
     });
 
-     redisClient.set(alias, longUrl, 'EX', 60 * 60 * 24);  //Cache the URL for 24 hours
+    redisClient.set(alias, longUrl, 'EX', 60 * 60 * 24);
 
     res.status(201).json({
       shortUrl: newUrl.shortUrl,
@@ -42,21 +40,19 @@ exports.createShortUrl = async (req, res) => {
 
 exports.redirectToOriginalUrl = async (req, res) => {
   const { alias } = req.params;
-console.log("redirecting working")
   try {
     const cachedUrl = await redisClient.get(alias);
-console.log("cachedurl",cachedUrl)
+    console.log("cachedurl", cachedUrl)
     if (cachedUrl) {
       return res.redirect(cachedUrl);
     }
 
     const url = await URL.findOne({ customAlias: alias });
-console.log("database finds url", url)
     if (!url) {
       return res.status(404).json({ message: 'URL not found' });
     }
 
-    // Increment click count
+
     url.clicks++;
     url.analytics.push({
       userAgent: req.headers['user-agent'],

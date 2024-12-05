@@ -11,19 +11,19 @@ const dotenv = require('dotenv');
 dotenv.config();
 const app = express();
 
-// Passport Configuration
+
 require('./passport');
 
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
 
-// Use Routes
-app.use('/api', authRoutes); // Prefixed auth-related routes
-app.use('/api', urlRoutes); // Prefixed URL-related routes
-app.use('/api/analytics', analyticsRoutes); // Prefixed analytics-related routes
 
-// MongoDB Connection
+app.use('/api', authRoutes); 
+app.use('/api', urlRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+
 mongoose
   .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
