@@ -1,28 +1,51 @@
 const redis = require('redis');
 
+// Create a Redis client with environment variables
+if(process.env.USE_DOCKER){
+  const client = redis.createClient({
+    socket: {
+      host: process.env.REDIS_HOST ,
+      port: process.env.REDIS_PORT 
+    },
+  });
+  
+  console.log("Initializing Redis client...");
+  
+  client.on('error', (err) => {
+    console.error('Redis Client Error:', err);
+  });
+  
+  (async () => {
+    try {
+      await client.connect(); // Explicitly connect the client
+      console.log("Redis client connected successfully");
+    } catch (err) {
+      console.error("Error connecting Redis client:", err);
+    }
+  })();
+  
+  
+  module.exports = client;
 
-const isDocker = process.env.USE_DOCKER === 'true'; // Set this environment variable to "true" when using Docker
-
-const client = redis.createClient({
-  socket: isDocker
-    ? { host: process.env.REDIS_HOST, port: process.env.REDIS_PORT } 
-    : undefined, 
-  host: isDocker ? undefined : process.env.REDIS_HOST,
-  port: isDocker ? undefined : process.env.REDIS_PORT,
-});
-
-console.log("Initializing Redis client...");
-
-client.on('error', (err) => console.error('Redis Client Error', err));
+}
 
 
-(async () => {
-  try {
-    await client.connect();
-    console.log("Redis client connected successfully");
-  } catch (err) {
-    console.error("Error connecting Redis client:", err);
-  }
-})();
 
-module.exports = client;
+
+
+//// upr vala use krna  niche ka commentout krdena docker k liye 
+
+
+/////////////////////////For direct windows/////////////////////
+
+else{
+  const client = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+  });
+  console.log("redis is running");
+  client.on('error', (err) => console.error('Redis Client Error', err));
+  module.exports = client;
+}
+
+
