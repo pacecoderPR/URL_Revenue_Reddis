@@ -19,7 +19,7 @@ exports.getUrlAnalytics = async (req, res) => {
 
     const osType = {};
     const deviceType = {};
-
+//okay
     url.analytics.forEach((entry) => {
       
       const os = 'Unknown'; // Replace with parsed OS
