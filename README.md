@@ -86,7 +86,8 @@ Create a `.env` file in the root directory and set the following variables:
 # General
 PORT=3000
 NODE_ENV=development
-
+#Docker
+USE_DOCKER=boolean
 # MongoDB
 MONGO_URI=mongodb://<host>:<port>/<database>
 
@@ -101,7 +102,8 @@ GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 ```
 
 For Docker, ensure the `.env` file is loaded in the `docker-compose.yml` file.
-
+USE_DOCKER will be true for docker environment.
+USE_DOCKER will be false for local environment.
 ---
 
 ## Usage
