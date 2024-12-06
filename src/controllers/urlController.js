@@ -1,5 +1,17 @@
 let nanoid;
-
+const os = require('os');
+function getSystemIpAddress() {
+  const networkInterfaces = os.networkInterfaces();
+  for (const interfaceName in networkInterfaces) {
+    for (const net of networkInterfaces[interfaceName]) {
+      
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '127.0.0.1'; 
+}
 (async () => {
   const { nanoid: generatedNanoid } = await import('nanoid');
   nanoid = generatedNanoid;
@@ -40,7 +52,7 @@ exports.createShortUrl = async (req, res) => {
 
 exports.redirectToOriginalUrl = async (req, res) => {
   const { alias } = req.params;
-
+ 
   try {
 
     const url = await URL.findOneAndUpdate(
@@ -50,7 +62,7 @@ exports.redirectToOriginalUrl = async (req, res) => {
         $push: {
           analytics: {
             userAgent: req.headers['user-agent'],
-            ip: req.ip,
+            ip: getSystemIpAddress(),
           },
         },
       },
