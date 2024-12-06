@@ -18,7 +18,7 @@ exports.createShortUrl = async (req, res) => {
 
   try {
     const alias = customAlias || nanoid();
-    const shortUrl = `${process.env.BASE_URL}/api/${alias}`;
+    const shortUrl = `${process.env.GLOBAL_URL}/api/${alias}`;
 
     const newUrl = await URL.create({
       longUrl,
