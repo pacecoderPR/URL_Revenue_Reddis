@@ -40,30 +40,29 @@ exports.createShortUrl = async (req, res) => {
 
 exports.redirectToOriginalUrl = async (req, res) => {
   const { alias } = req.params;
-  try {
-    const cachedUrl = await redisClient.get(alias);
-    console.log("cachedurl", cachedUrl)
-    if (cachedUrl) {
-      return res.redirect(cachedUrl);
-    }
 
-    const url = await URL.findOne({ customAlias: alias });
+  try {
+
+    const url = await URL.findOneAndUpdate(
+      { customAlias: alias },
+      {
+        $inc: { clicks: 1 },
+        $push: {
+          analytics: {
+            userAgent: req.headers['user-agent'],
+            ip: req.ip,
+          },
+        },
+      },
+      { new: true }
+    );
+
     if (!url) {
       return res.status(404).json({ message: 'URL not found' });
     }
-
-
-    url.clicks++;
-    url.analytics.push({
-      userAgent: req.headers['user-agent'],
-      ip: req.ip,
-    });
-    await url.save();
-
-    redisClient.set(alias, url.longUrl, 'EX', 60 * 60 * 24); // Cache the URL for 24 hours
-
     res.redirect(url.longUrl);
   } catch (error) {
+    console.error('Error redirecting to URL:', error);
     res.status(500).json({ message: 'Error redirecting to URL', error });
   }
 };
