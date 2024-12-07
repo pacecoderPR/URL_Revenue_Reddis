@@ -12,6 +12,8 @@ function getSystemIpAddress() {
   }
   return '127.0.0.1'; 
 }
+
+
 (async () => {
   const { nanoid: generatedNanoid } = await import('nanoid');
   nanoid = generatedNanoid;
@@ -52,6 +54,9 @@ exports.createShortUrl = async (req, res) => {
 
 exports.redirectToOriginalUrl = async (req, res) => {
   const { alias } = req.params;
+  
+  const ip =  req.connection.remoteAddress;
+  const id=req.deviceId;
  
   try {
 
@@ -63,6 +68,7 @@ exports.redirectToOriginalUrl = async (req, res) => {
           analytics: {
             userAgent: req.headers['user-agent'],
             ip: getSystemIpAddress(),
+            deviceId:id,
           },
         },
       },

@@ -13,6 +13,7 @@ const urlSchema = new mongoose.Schema({
       userAgent: String,
       ip: String,
       location: String,
+      deviceId: String,
     },
   ],
 });

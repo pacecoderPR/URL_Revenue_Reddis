@@ -6,6 +6,8 @@ const authRoutes = require('./routes/authRoutes');
 const urlRoutes = require('./routes/urlRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
+const { assignDeviceId } = require('./middlewares/assignDeviceId');
 
 
 dotenv.config();
@@ -17,6 +19,8 @@ require('./passport');
 app.use(cors());
 app.use(express.json());
 app.use(passport.initialize());
+app.use(cookieParser()); // Required for parsing cookies
+app.use(assignDeviceId); // Add the middleware here
 
 
 app.use('/api', authRoutes); 

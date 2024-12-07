@@ -13,7 +13,7 @@ exports.getUrlAnalytics = async (req, res) => {
     if (!url) {
       return res.status(404).json({ message: 'URL not found' });
     }
-
+    
     if (!url.analytics || url.analytics.length === 0) {
       return res.status(200).json({
         totalClicks: 0,
@@ -21,6 +21,7 @@ exports.getUrlAnalytics = async (req, res) => {
         clicksByDate: {},
         osType: {},
         deviceType: [],
+        deviceId: req.deviceId,
       });
     }
 
@@ -30,7 +31,6 @@ exports.getUrlAnalytics = async (req, res) => {
     const deviceStats = {};
 
     url.analytics.forEach((entry) => {
-    
       const date = entry.timestamp.toISOString().split('T')[0];
       clicksByDate[date] = (clicksByDate[date] || 0) + 1;
 
@@ -49,7 +49,7 @@ exports.getUrlAnalytics = async (req, res) => {
         };
       }
       deviceStats[device].uniqueClicks++;
-      deviceStats[device].uniqueUsers.add(entry.ip);
+      deviceStats[device].uniqueUsers.add(entry.ip||entry.deviceId);
     });
 
     
@@ -62,7 +62,7 @@ exports.getUrlAnalytics = async (req, res) => {
    
     res.json({
       totalClicks: url.analytics.length,
-      uniqueClicks: new Set(url.analytics.map((a) => a.ip)).size,
+      uniqueClicks: new Set(url.analytics.map((a) => a.ip||a.deviceId)).size,
       clicksByDate,
       osType,
       deviceType,
@@ -72,6 +72,8 @@ exports.getUrlAnalytics = async (req, res) => {
     res.status(500).json({ message: 'Error fetching analytics', error });
   }
 };
+
+
 
 exports.getTopicAnalytics = async (req, res) => {
   const { topic } = req.params;
@@ -86,118 +88,103 @@ exports.getTopicAnalytics = async (req, res) => {
     let totalClicks = 0;
     const uniqueUsers = new Set();
     const clicksByDate = {};
-    const deviceStats = {};
 
     urls.forEach((url) => {
-      totalClicks += url.clicks;
+      totalClicks += url.analytics.length;
 
       url.analytics.forEach((entry) => {
-        uniqueUsers.add(entry.ip); 
+        uniqueUsers.add(entry.ip || entry.deviceId);
 
-        const date = new Date(entry.timestamp).toISOString().split('T')[0];
+        const date = entry.timestamp.toISOString().split('T')[0];
         clicksByDate[date] = (clicksByDate[date] || 0) + 1;
-
-        const parser = new UAParser(entry.userAgent);
-        const device = parser.getDevice().type || 'Desktop'; 
-
-        if (!deviceStats[device]) {
-          deviceStats[device] = {
-            uniqueClicks: 0,
-            uniqueUsers: new Set(),
-          };
-        }
-        deviceStats[device].uniqueClicks++;
-        deviceStats[device].uniqueUsers.add(entry.ip);
       });
     });
-
-   
-    const deviceType = Object.keys(deviceStats).map((device) => ({
-      device,
-      uniqueClicks: deviceStats[device].uniqueClicks,
-      uniqueUsers: deviceStats[device].uniqueUsers.size,
-    }));
 
     const response = {
       totalClicks,
       uniqueClicks: uniqueUsers.size,
-      clicksByDate,
-      deviceType,
+      clicksByDate: Object.keys(clicksByDate).map((date) => ({
+        date,
+        clickCount: clicksByDate[date],
+      })),
       urls: urls.map((url) => ({
         shortUrl: url.shortUrl,
-        longUrl: url.longUrl,
-        totalClicks: url.clicks,
-        uniqueClicks: new Set(url.analytics.map((a) => a.ip)).size,
+        totalClicks: url.analytics.length,
+        uniqueClicks: new Set(url.analytics.map((entry) => entry.ip || entry.deviceId)).size,
       })),
     };
 
-    return res.json(response);
+    res.json(response);
   } catch (error) {
-    console.error('Error fetching topic analytics:', error.message);
-    return res.status(500).json({ message: 'Error fetching topic analytics', error });
+    console.error('Error fetching topic analytics:', error);
+    res.status(500).json({ message: 'Error fetching topic analytics', error });
   }
 };
-
-
 
 exports.getOverallAnalytics = async (req, res) => {
   try {
     const urls = await URL.find();
 
+    if (!urls || urls.length === 0) {
+      return res.status(404).json({ message: 'No URLs found' });
+    }
+
     let totalClicks = 0;
-    let uniqueUsers = new Set();
+    const uniqueUsers = new Set();
     const clicksByDate = {};
     const osType = {};
     const deviceStats = {};
 
     urls.forEach((url) => {
-      totalClicks += url.clicks;
+      totalClicks += url.analytics.length;
 
       url.analytics.forEach((entry) => {
-        uniqueUsers.add(entry.ip);
+        uniqueUsers.add(entry.ip || entry.deviceId);
 
-        // Parse date for daily clicks aggregation
         const date = entry.timestamp.toISOString().split('T')[0];
         clicksByDate[date] = (clicksByDate[date] || 0) + 1;
 
-        // Parse user-agent details using UAParser
         const parser = new UAParser(entry.userAgent);
         const os = parser.getOS().name || 'Unknown';
         const device = parser.getDevice().type || 'Desktop';
 
-        // Update OS type counts
-        osType[os] = (osType[os] || 0) + 1;
+        osType[os] = osType[os] || { uniqueClicks: 0, uniqueUsers: new Set() };
+        osType[os].uniqueClicks++;
+        osType[os].uniqueUsers.add(entry.ip || entry.deviceId);
 
-        // Update device stats
-        if (!deviceStats[device]) {
-          deviceStats[device] = {
-            uniqueClicks: 0,
-            uniqueUsers: new Set(),
-          };
-        }
+        deviceStats[device] = deviceStats[device] || { uniqueClicks: 0, uniqueUsers: new Set() };
         deviceStats[device].uniqueClicks++;
-        deviceStats[device].uniqueUsers.add(entry.ip);
+        deviceStats[device].uniqueUsers.add(entry.ip || entry.deviceId);
       });
     });
 
-    // Convert deviceStats into an array of objects
-    const deviceType = Object.keys(deviceStats).map((device) => ({
-      device,
+    const osTypeArray = Object.keys(osType).map((os) => ({
+      osName: os,
+      uniqueClicks: osType[os].uniqueClicks,
+      uniqueUsers: osType[os].uniqueUsers.size,
+    }));
+
+    const deviceTypeArray = Object.keys(deviceStats).map((device) => ({
+      deviceName: device,
       uniqueClicks: deviceStats[device].uniqueClicks,
-      uniqueUsers: deviceStats[device].uniqueUsers.size, // Count unique IPs
+      uniqueUsers: deviceStats[device].uniqueUsers.size,
     }));
 
     res.json({
       totalUrls: urls.length,
       totalClicks,
       uniqueClicks: uniqueUsers.size,
-      clicksByDate,
-      osType,
-      deviceType,
+      clicksByDate: Object.keys(clicksByDate).map((date) => ({
+        date,
+        clickCount: clicksByDate[date],
+      })),
+      osType: osTypeArray,
+      deviceType: deviceTypeArray,
     });
   } catch (error) {
     console.error('Error fetching overall analytics:', error);
     res.status(500).json({ message: 'Error fetching overall analytics', error });
   }
 };
+
 
